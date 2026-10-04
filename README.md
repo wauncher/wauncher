@@ -175,6 +175,21 @@ Stamps a `YYYYMMDD.XX` version, draws the icon and produces two builds:
 
 Data goes to `%LOCALAPPDATA%\eve-wauncher` either way.
 
+## Releases
+
+Releases are built by GitHub Actions, not uploaded by hand. Pushing a tag of the form `vYYYYMMDD.XX`
+(for example `v20261004.09`) runs `.github/workflows/release.yml` on a Windows runner, which stamps that
+version into the build, produces the single-file exe and a zip of the one-folder build, and attaches both
+to a release of the same name:
+
+```bash
+git tag v20261004.09
+git push origin main --tags
+```
+
+Plain commits never create a release. The runner needs nothing beyond the repository itself: the default
+`GITHUB_TOKEN` with `contents: write` is enough, and the build is free on GitHub's standard runners.
+
 ## Credits
 
 This is 100% vibe coded.

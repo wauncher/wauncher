@@ -1,0 +1,50 @@
+name: release
+
+# Push a tag like v20261004.09 and this builds both outputs on a Windows runner and attaches them to a
+# GitHub Release of the same name. The version baked into the exe comes from the tag (minus the "v").
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build requirements
+        run: python -m pip install -r requirements.txt
+
+      - name: Stamp the version from the tag
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v")
+          python tools\bump_version.py $v
+
+      - name: Draw the icon
+        run: python tools\make_icon.py
+
+      - name: Build (single file)
+        run: python -m PyInstaller --noconfirm --clean wauncher.spec
+
+      - name: Build (one folder)
+        run: python -m PyInstaller --noconfirm --clean wauncher-onedir.spec
+
+      - name: Zip the one-folder build
+        shell: pwsh
+        run: Compress-Archive -Path dist\wauncher\* -DestinationPath "dist\wauncher-${{ github.ref_name }}-folder.zip"
+
+      - name: Create the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" (Get-ChildItem dist\wauncher_*.exe, dist\*.zip | ForEach-Object FullName) `
+            --title "wauncher ${{ github.ref_name }}" --generate-notes
